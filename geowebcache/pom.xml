@@ -29,6 +29,7 @@
     <module>azureblob</module>
     <module>swiftblob</module>
     <module>mbtiles</module>
+    <module>mongodb</module>
   </modules>
 
   <distributionManagement>
@@ -88,6 +89,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <jclouds.version>2.2.0</jclouds.version>
     <mockito.version>3.8.0</mockito.version>
+    <mongo.version>3.2.2</mongo.version>
   </properties>
 
   <dependencyManagement>
@@ -170,7 +172,11 @@
         <artifactId>commons-fileupload</artifactId>
         <version>${commons-fileupload.version}</version>
       </dependency>
-
+      <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-driver</artifactId>
+        <version>${mongo.version}</version>
+      </dependency>
       <dependency>
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>

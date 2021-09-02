@@ -13,6 +13,7 @@
     <artifactId>gwc-mongodb</artifactId>
     <packaging>jar</packaging>
     <name>mongodb Storage</name>
+
     <dependencies>
         <dependency>
             <groupId>org.geowebcache</groupId>

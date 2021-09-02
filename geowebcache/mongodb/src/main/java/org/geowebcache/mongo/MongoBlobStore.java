@@ -10,6 +10,12 @@ import java.util.Optional;
  * @date 2021/8/26
  */
 public class MongoBlobStore implements BlobStore {
+    private final MongoManager mongoManager;
+
+    public MongoBlobStore(MongoInfo configuration) {
+        this.mongoManager = new MongoManager(configuration.getMongoUrl());
+    }
+
     @Override
     public boolean delete(String layerName) throws StorageException {
         return false;
