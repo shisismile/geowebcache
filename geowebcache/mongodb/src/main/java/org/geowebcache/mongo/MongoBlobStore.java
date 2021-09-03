@@ -9,8 +9,6 @@ import org.geowebcache.io.Resource;
 import org.geowebcache.storage.*;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
@@ -35,15 +33,16 @@ public class MongoBlobStore implements BlobStore {
     @Override
     public boolean delete(String layerName) throws StorageException {
         // layerName world_map:OK_WSG84
-        boolean ret = mongoManager.deleteCollection(layerName);
+        boolean ret = mongoManager.deleteCollection(getReplaceName(layerName));
         this.listeners.sendLayerDeleted(layerName);
         return ret;
     }
 
     @Override
     public boolean deleteByGridsetId(String layerName, String gridSetId) throws StorageException {
+        final String collectionName = getCollectionName(layerName, gridSetId);
         listeners.sendGridSubsetDeleted(layerName, gridSetId);
-        return false;
+        return mongoManager.deleteCollection(collectionName);
     }
 
     @Override
@@ -56,7 +55,9 @@ public class MongoBlobStore implements BlobStore {
     @Override
     public boolean delete(TileObject obj) throws StorageException {
         final long[] trans = mongoManager.trans(obj.getXYZ());
-        boolean ret = mongoManager.deleteTile(obj.getLayerName(), trans);
+        boolean ret =
+                mongoManager.deleteTile(
+                        getCollectionName(obj.getLayerName(), obj.getGridSetId()), trans);
         if (ret) {
             listeners.sendTileDeleted(obj);
             obj.setBlobSize(0);
@@ -86,7 +87,9 @@ public class MongoBlobStore implements BlobStore {
         final long[] xyz = obj.getXYZ();
         final long[] trans = mongoManager.readTrans(xyz);
         LOGGER.info("trans : " + Arrays.toString(trans));
-        final Document tile = mongoManager.getTile(obj.getLayerName(), trans);
+        final Document tile =
+                mongoManager.getTile(
+                        getCollectionName(obj.getLayerName(), obj.getGridSetId()), trans);
         if (Objects.isNull(tile)) {
             return false;
         } else {
@@ -99,6 +102,14 @@ public class MongoBlobStore implements BlobStore {
         }
     }
 
+    private String getCollectionName(String layerName, String gridSetId) {
+        return getReplaceName(layerName) + "_" + getReplaceName(gridSetId);
+    }
+
+    private String getReplaceName(String name) {
+        return name.replace(":", "_");
+    }
+
     @Override
     public void put(TileObject obj) throws StorageException {
         LOGGER.info("TileObject Write: " + obj);
@@ -107,23 +118,23 @@ public class MongoBlobStore implements BlobStore {
         long x = trans[0];
         long y = trans[1];
         long z = trans[2];
-        File out = new File(String.format("C:\\Users\\bbd\\Desktop\\%d_%d_%d.png", x, y, z));
         Document document;
-        try (FileOutputStream os = new FileOutputStream(out);) {
+        try {
             final Resource blob = obj.getBlob();
             final ByteArrayOutputStream buf = new ByteArrayOutputStream(4096);
             final InputStream inputStream = blob.getInputStream();
             byte[] buff = new byte[4096];
             int rc = 0;
-            while ((rc = inputStream.read(buff, 0, 100)) > 0) {
+            while ((rc = inputStream.read(buff, 0, 4096)) > 0) {
                 buf.write(buff, 0, rc);
-                os.write(buff, 0, rc);
             }
             document = mongoManager.generateDocument(x, y, z, buf.toByteArray());
         } catch (Exception e) {
             throw new StorageException("put failed", e);
         }
-        final boolean b = mongoManager.putTile(obj.getLayerName(), document);
+        final boolean b =
+                mongoManager.putTile(
+                        getCollectionName(obj.getLayerName(), obj.getGridSetId()), document);
         if (b) {
             listeners.sendTileUpdated(obj, 0);
         } else {

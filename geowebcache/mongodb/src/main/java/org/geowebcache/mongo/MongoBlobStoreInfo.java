@@ -21,17 +21,11 @@ public class MongoBlobStoreInfo extends BlobStoreInfo {
      * x filed name
      */
     private String xTile;
-    /**
-     * y filed name
-     */
+    /** y filed name */
     private String yTile;
-    /**
-     * z filed name
-     */
+    /** z filed name */
     private String zoom;
-    /**
-     * img filed name ;should binary type
-     */
+    /** img filed name ;should binary type */
     private String img;
 
     public String getMongoUrl() {

@@ -5,6 +5,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 import org.apache.commons.logging.Log;
@@ -45,8 +46,13 @@ public class MongoManager implements AutoCloseable {
         if (!collectionExist(layerName)) {
             return false;
         }
-        final MongoCollection<Document> layer = database.getCollection(layerName);
-        layer.drop();
+        final MongoIterable<String> collectionNames = database.listCollectionNames();
+        for (String name : collectionNames) {
+            if (name.startsWith(layerName)) {
+                final MongoCollection<Document> collection = database.getCollection(layerName);
+                collection.drop();
+            }
+        }
         return true;
     }
 
