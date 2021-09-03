@@ -14,33 +14,6 @@
  */
 package org.geowebcache.sqlite;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,12 +24,19 @@ import org.geotools.mbtiles.MBTilesTile;
 import org.geowebcache.filter.parameters.ParametersUtils;
 import org.geowebcache.mime.MimeException;
 import org.geowebcache.mime.MimeType;
-import org.geowebcache.storage.BlobStoreListener;
-import org.geowebcache.storage.BlobStoreListenerList;
-import org.geowebcache.storage.CompositeBlobStore;
-import org.geowebcache.storage.StorageException;
-import org.geowebcache.storage.TileObject;
-import org.geowebcache.storage.TileRange;
+import org.geowebcache.storage.*;
+
+import java.io.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /** Blobstore that store the tiles in a sqlite database using the mbtiles specification. */
 public final class MbtilesBlobStore extends SqliteBlobStore {
@@ -148,6 +128,7 @@ public final class MbtilesBlobStore extends SqliteBlobStore {
 
     @Override
     public void put(TileObject tile) throws StorageException {
+        LOGGER.info("tile:" + tile.toString());
         File file = fileManager.getFile(tile);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(String.format("Tile '%s' mapped to file '%s'.", tile, file));

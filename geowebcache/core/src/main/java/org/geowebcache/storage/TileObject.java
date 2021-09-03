@@ -14,11 +14,12 @@
  */
 package org.geowebcache.storage;
 
+import org.geowebcache.grid.GridSet;
+import org.geowebcache.io.Resource;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Map;
-import org.geowebcache.grid.GridSet;
-import org.geowebcache.io.Resource;
 
 /**
  * Represents a specific tile in a {@link GridSet}, identified by xyz. Normally the contents can be
@@ -138,6 +139,7 @@ public class TileObject extends StorageObject implements Serializable {
         return TYPE;
     }
 
+    @Override
     public String toString() {
         return "[" + layer_name + "," + gridSetId + ",{" + Arrays.toString(xyz) + "}]";
     }

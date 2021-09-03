@@ -14,33 +14,7 @@
  */
 package org.geowebcache.storage.blobstore.file;
 
-import static org.geowebcache.storage.blobstore.file.FilePathUtils.filteredGridSetId;
-import static org.geowebcache.storage.blobstore.file.FilePathUtils.filteredLayerName;
-import static org.geowebcache.util.FileUtils.listFilesNullSafe;
-
 import com.google.common.base.Preconditions;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.channels.FileChannel;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.geowebcache.GeoWebCacheException;
@@ -50,21 +24,31 @@ import org.geowebcache.io.FileResource;
 import org.geowebcache.io.Resource;
 import org.geowebcache.mime.MimeException;
 import org.geowebcache.mime.MimeType;
-import org.geowebcache.storage.BlobStore;
-import org.geowebcache.storage.BlobStoreListener;
-import org.geowebcache.storage.BlobStoreListenerList;
-import org.geowebcache.storage.CompositeBlobStore;
-import org.geowebcache.storage.DefaultStorageFinder;
-import org.geowebcache.storage.StorageException;
+import org.geowebcache.storage.*;
 import org.geowebcache.storage.StorageObject.Status;
-import org.geowebcache.storage.TileObject;
-import org.geowebcache.storage.TileRange;
 import org.geowebcache.util.FileUtils;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 
+import java.io.*;
+import java.net.URLDecoder;
+import java.nio.channels.FileChannel;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import static org.geowebcache.storage.blobstore.file.FilePathUtils.filteredGridSetId;
+import static org.geowebcache.storage.blobstore.file.FilePathUtils.filteredLayerName;
+import static org.geowebcache.util.FileUtils.listFilesNullSafe;
+
 /** See BlobStore interface description for details */
 public class FileBlobStore implements BlobStore {
-
     private static Log log =
             LogFactory.getLog(org.geowebcache.storage.blobstore.file.FileBlobStore.class);
 
@@ -236,6 +220,7 @@ public class FileBlobStore implements BlobStore {
     }
 
     /** @see org.geowebcache.storage.BlobStore#delete(java.lang.String) */
+    @Override
     public boolean delete(final String layerName) throws StorageException {
         final File source = getLayerPath(layerName);
         final String target = filteredLayerName(layerName);
@@ -467,8 +452,10 @@ public class FileBlobStore implements BlobStore {
     }
 
     /** Store a tile. */
+    @Override
     public void put(TileObject stObj) throws StorageException {
-
+        final long[] xyz = stObj.getXYZ();
+        log.info("stjObj: " + stObj.toString());
         // an update to ParameterMap file is required !!!
         Runnable upm =
                 () -> {

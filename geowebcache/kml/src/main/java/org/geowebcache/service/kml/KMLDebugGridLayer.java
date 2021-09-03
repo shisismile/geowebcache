@@ -14,11 +14,6 @@
  */
 package org.geowebcache.service.kml;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import javax.servlet.http.HttpServletResponse;
 import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.config.DefaultGridsets;
 import org.geowebcache.conveyor.ConveyorTile;
@@ -33,7 +28,15 @@ import org.geowebcache.mime.MimeType;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 
-/** Creates a grid of tiles and puts the grid index on each of them */
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
+/**
+ * Creates a grid of tiles and puts the grid index on each of them
+ */
 public class KMLDebugGridLayer extends AbstractTileLayer {
 
     public static final String LAYERNAME = "debugGrid";
@@ -74,10 +77,12 @@ public class KMLDebugGridLayer extends AbstractTileLayer {
         return new BoundingBox(-180.0, -90.0, 180.0, 90.0);
     }
 
+    @Override
     public MimeType getDefaultMimeType() {
         return null;
     }
 
+    @Override
     public int[] getMetaTilingFactors() {
         return null;
     }
@@ -203,12 +208,14 @@ public class KMLDebugGridLayer extends AbstractTileLayer {
 
     public void releaseLayerLock() {}
 
+    @Override
     public void setExpirationHeader(HttpServletResponse response, int zoomLevel) {}
 
     public String supportsBbox(SRS srs, BoundingBox bounds) throws GeoWebCacheException {
         return null;
     }
 
+    @Override
     public boolean supportsFormat(String formatStr) throws GeoWebCacheException {
         return false;
     }

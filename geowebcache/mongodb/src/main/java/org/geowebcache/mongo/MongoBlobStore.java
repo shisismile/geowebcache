@@ -1,8 +1,20 @@
 package org.geowebcache.mongo;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bson.Document;
+import org.bson.types.Binary;
+import org.geowebcache.io.ByteArrayResource;
+import org.geowebcache.io.Resource;
 import org.geowebcache.storage.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -10,85 +22,160 @@ import java.util.Optional;
  * @date 2021/8/26
  */
 public class MongoBlobStore implements BlobStore {
-    private final MongoManager mongoManager;
+    private static Log LOGGER = LogFactory.getLog(MongoBlobStore.class);
 
-    public MongoBlobStore(MongoInfo configuration) {
-        this.mongoManager = new MongoManager(configuration.getMongoUrl());
+    private final MongoManager mongoManager;
+    private final BlobStoreListenerList listeners = new BlobStoreListenerList();
+
+    public MongoBlobStore(MongoBlobStoreInfo configuration) {
+        this.mongoManager = new MongoManager(configuration);
+        this.mongoManager.createCollection(MongoManager.METADATA);
     }
 
     @Override
     public boolean delete(String layerName) throws StorageException {
-        return false;
+        // layerName world_map:OK_WSG84
+        boolean ret = mongoManager.deleteCollection(layerName);
+        this.listeners.sendLayerDeleted(layerName);
+        return ret;
     }
 
     @Override
     public boolean deleteByGridsetId(String layerName, String gridSetId) throws StorageException {
+        listeners.sendGridSubsetDeleted(layerName, gridSetId);
         return false;
     }
 
     @Override
-    public boolean deleteByParametersId(String layerName, String parametersId) throws StorageException {
+    public boolean deleteByParametersId(String layerName, String parametersId)
+            throws StorageException {
+        listeners.sendParametersDeleted(layerName, parametersId);
         return false;
     }
 
     @Override
     public boolean delete(TileObject obj) throws StorageException {
-        return false;
+        final long[] trans = mongoManager.trans(obj.getXYZ());
+        boolean ret = mongoManager.deleteTile(obj.getLayerName(), trans);
+        if (ret) {
+            listeners.sendTileDeleted(obj);
+            obj.setBlobSize(0);
+        }
+        return ret;
     }
 
     @Override
     public boolean delete(TileRange obj) throws StorageException {
+        final String layerName = obj.getLayerName();
+        //        listeners.sendTileDeleted(
+        //                layerName,
+        //                gridSetId,
+        //                blobFormat,
+        //                parametersId,
+        //                x,
+        //                y,
+        //                z,
+        //                padSize(length));
         return false;
     }
 
     @Override
     public boolean get(TileObject obj) throws StorageException {
-        return false;
+        // TileObject Read: [world_map:OK_WSG84,EPSG:900913,{[2, 1, 2]}]
+        LOGGER.info("TileObject Read: " + obj);
+        final long[] xyz = obj.getXYZ();
+        final long[] trans = mongoManager.readTrans(xyz);
+        LOGGER.info("trans : " + Arrays.toString(trans));
+        final Document tile = mongoManager.getTile(obj.getLayerName(), trans);
+        if (Objects.isNull(tile)) {
+            return false;
+        } else {
+            final Binary img = mongoManager.getBinary(tile);
+            ByteArrayResource resource = new ByteArrayResource(img.getData());
+            obj.setBlob(resource);
+            obj.setCreated(resource.getLastModified());
+            obj.setBlobSize((int) resource.getSize());
+            return true;
+        }
     }
 
     @Override
     public void put(TileObject obj) throws StorageException {
-
+        LOGGER.info("TileObject Write: " + obj);
+        final long[] xyz = obj.getXYZ();
+        final long[] trans = mongoManager.trans(xyz);
+        long x = trans[0];
+        long y = trans[1];
+        long z = trans[2];
+        File out = new File(String.format("C:\\Users\\bbd\\Desktop\\%d_%d_%d.png", x, y, z));
+        Document document;
+        try (FileOutputStream os = new FileOutputStream(out);) {
+            final Resource blob = obj.getBlob();
+            final ByteArrayOutputStream buf = new ByteArrayOutputStream(4096);
+            final InputStream inputStream = blob.getInputStream();
+            byte[] buff = new byte[4096];
+            int rc = 0;
+            while ((rc = inputStream.read(buff, 0, 100)) > 0) {
+                buf.write(buff, 0, rc);
+                os.write(buff, 0, rc);
+            }
+            document = mongoManager.generateDocument(x, y, z, buf.toByteArray());
+        } catch (Exception e) {
+            throw new StorageException("put failed", e);
+        }
+        final boolean b = mongoManager.putTile(obj.getLayerName(), document);
+        if (b) {
+            listeners.sendTileUpdated(obj, 0);
+        } else {
+            listeners.sendTileStored(obj);
+        }
     }
 
     @Override
     public void clear() throws StorageException {
-
     }
 
     @Override
     public void destroy() {
-
     }
 
     @Override
     public void addListener(BlobStoreListener listener) {
-
+        listeners.addListener(listener);
     }
 
     @Override
     public boolean removeListener(BlobStoreListener listener) {
-        return false;
+        return listeners.removeListener(listener);
     }
 
     @Override
     public boolean rename(String oldLayerName, String newLayerName) throws StorageException {
-        return false;
+        if (!mongoManager.collectionExist(oldLayerName)) {
+            this.listeners.sendLayerRenamed(oldLayerName, newLayerName);
+            return true;
+        }
+        this.listeners.sendLayerRenamed(oldLayerName, newLayerName);
+        boolean ret = mongoManager.renameCollection(newLayerName, oldLayerName);
+        if (ret) {
+            this.listeners.sendLayerRenamed(oldLayerName, newLayerName);
+        }
+        return ret;
     }
 
     @Override
     public String getLayerMetadata(String layerName, String key) {
-        return null;
+        return mongoManager.getEntry(layerName, key);
     }
 
     @Override
     public void putLayerMetadata(String layerName, String key, String value) {
-
+        mongoManager.putEntry(layerName, key, value);
     }
 
     @Override
     public boolean layerExists(String layerName) {
-        return false;
+        return mongoManager.collectionExist(layerName);
     }
 
     @Override
