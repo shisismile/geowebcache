@@ -2,6 +2,8 @@ package org.geowebcache.elasticsearch;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.auth.AuthScope;
@@ -23,6 +25,8 @@ import java.util.Map;
  * @date 2021/9/8
  */
 public class ElasticsearchManager {
+    private static Log LOGGER = LogFactory.getLog(ElasticsearchManager.class);
+
     private final RestClient restClient;
     private final String x;
     private final String y;
@@ -62,7 +66,6 @@ public class ElasticsearchManager {
         this.img = info.getImg();
     }
 
-
     private boolean createIndex(String index, String contentJsonString) {
         try {
             Request request = new Request("PUT", String.format("/%s", index));
@@ -76,7 +79,8 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error") && (boolean) map.get("acknowledged");
         } catch (IOException e) {
-            throw new RuntimeException("Create Index Err", e);
+            LOGGER.error("create index err:" + e.getMessage());
+            return false;
         }
     }
 
@@ -87,40 +91,41 @@ public class ElasticsearchManager {
      * @return 创建结果
      */
     public boolean createIndex(String index) {
-        String body = "{\n" +
-                "\t\"mappings\": {\n" +
-                "\t\t\n" +
-                "\t\t\"doc\": {\n" +
-                "\t\t\t\"properties\": {\n" +
-                "\t\t\t\t\"id\": {\n" +
-                "\t\t\t\t\t\"type\": \"text\",\n" +
-                "\t\t\t\t\t\"index\": false\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t\"%s\": {\n" +
-                "\t\t\t\t\t\"type\": \"text\",\n" +
-                "\t\t\t\t\t\"index\": false\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t\"%s\": {\n" +
-                "\t\t\t\t\t\"type\": \"long\",\n" +
-                "\t\t\t\t\t\"index\": true\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t\"%s\": {\n" +
-                "\t\t\t\t\t\"type\": \"long\",\n" +
-                "\t\t\t\t\t\"index\": true\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t\"%s\": {\n" +
-                "\t\t\t\t\t\"type\": \"long\",\n" +
-                "\t\t\t\t\t\"index\": true\n" +
-                "\t\t\t\t}\n" +
-                "\t\t\t}\n" +
-                "\t\t}\n" +
-                "\t},\n" +
-                "\t\"settings\": {\n" +
-                "\t\t\"index\": {\n" +
-                "\t\t\t\"number_of_replicas\": \"0\"\n" +
-                "\t\t}\n" +
-                "\t}\n" +
-                "}";
+        String body =
+                "{\n"
+                        + "\t\"mappings\": {\n"
+                        + "\t\t\n"
+                        + "\t\t\"doc\": {\n"
+                        + "\t\t\t\"properties\": {\n"
+                        + "\t\t\t\t\"id\": {\n"
+                        + "\t\t\t\t\t\"type\": \"text\",\n"
+                        + "\t\t\t\t\t\"index\": false\n"
+                        + "\t\t\t\t},\n"
+                        + "\t\t\t\t\"%s\": {\n"
+                        + "\t\t\t\t\t\"type\": \"text\",\n"
+                        + "\t\t\t\t\t\"index\": false\n"
+                        + "\t\t\t\t},\n"
+                        + "\t\t\t\t\"%s\": {\n"
+                        + "\t\t\t\t\t\"type\": \"long\",\n"
+                        + "\t\t\t\t\t\"index\": true\n"
+                        + "\t\t\t\t},\n"
+                        + "\t\t\t\t\"%s\": {\n"
+                        + "\t\t\t\t\t\"type\": \"long\",\n"
+                        + "\t\t\t\t\t\"index\": true\n"
+                        + "\t\t\t\t},\n"
+                        + "\t\t\t\t\"%s\": {\n"
+                        + "\t\t\t\t\t\"type\": \"long\",\n"
+                        + "\t\t\t\t\t\"index\": true\n"
+                        + "\t\t\t\t}\n"
+                        + "\t\t\t}\n"
+                        + "\t\t}\n"
+                        + "\t},\n"
+                        + "\t\"settings\": {\n"
+                        + "\t\t\"index\": {\n"
+                        + "\t\t\t\"number_of_replicas\": \"0\"\n"
+                        + "\t\t}\n"
+                        + "\t}\n"
+                        + "}";
         return createIndex(index, body);
     }
 
@@ -143,7 +148,8 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error") && (boolean) map.get("acknowledged");
         } catch (IOException e) {
-            throw new RuntimeException("Delete Index Err", e);
+            LOGGER.error("delete err:" + e.getMessage());
+            return false;
         }
     }
 
@@ -163,6 +169,7 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error");
         } catch (IOException e) {
+            LOGGER.error("check err:" + e.getMessage());
             return false;
         }
     }
@@ -202,7 +209,8 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error") && map.containsKey("result");
         } catch (IOException e) {
-            throw new RuntimeException("Add data Err", e);
+            LOGGER.error("add err:" + e.getMessage());
+            return false;
         }
     }
 
@@ -256,12 +264,13 @@ public class ElasticsearchManager {
             final HitsResult hitsResult = objectMapper.readValue(bytes, HitsResult.class);
             final Integer total = hitsResult.getHits().getTotal();
             if (total == 0) {
-                throw new RuntimeException("Not Found");
+                return null;
             }
             return Base64.getDecoder()
                     .decode(hitsResult.getHits().getHits()[0].get_source().getImg());
         } catch (IOException e) {
-            throw new RuntimeException("Query data Err", e);
+            LOGGER.error("get err:" + e.getMessage());
+            return null;
         }
     }
 
@@ -358,7 +367,8 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error") && map.containsKey("deleted");
         } catch (IOException e) {
-            throw new RuntimeException("Delete  data Err", e);
+            LOGGER.error("delete data err:" + e.getMessage());
+            return false;
         }
     }
 
@@ -367,7 +377,7 @@ public class ElasticsearchManager {
             if (!checkIndex(index)) {
                 createMetaIndex(index);
             }
-            Request request = new Request("POST", String.format("/%s/meta", index));
+            Request request = new Request("POST", String.format("/%s/meta", index + "_meta"));
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
@@ -381,7 +391,8 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error") && map.containsKey("result");
         } catch (IOException e) {
-            throw new RuntimeException("Add data Err", e);
+            LOGGER.error("add meta err:" + e.getMessage());
+            return false;
         }
     }
 
@@ -390,7 +401,7 @@ public class ElasticsearchManager {
             if (!checkIndex(index)) {
                 createMetaIndex(index);
             }
-            Request request = new Request("POST", String.format("/%s/meta/_search", index));
+            Request request = new Request("POST", String.format("/%s/meta/_search", index + "_meta"));
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
@@ -423,39 +434,40 @@ public class ElasticsearchManager {
                     objectMapper.readValue(bytes, CommentHitsResult.class);
             final Integer total = commentHitsResult.getHits().getTotal();
             if (total == 0) {
-                throw new RuntimeException("Not Found");
+                return null;
             }
             final Map<String, Object> source =
                     commentHitsResult.getHits().getHits()[0].get_source();
             return source.get("value").toString();
         } catch (IOException e) {
-            throw new RuntimeException("Query data Err", e);
+            LOGGER.error("get meta err:" + e.getMessage());
+            return null;
         }
     }
 
     private boolean createMetaIndex(String index) {
-        String json = "{\n" +
-                "\t\"mappings\": {\n" +
-                "\t\t\"meta\": {\n" +
-                "\t\t\t\"properties\": {\n" +
-                "\t\t\t\t\"key\": {\n" +
-                "\t\t\t\t\t\"type\": \"text\",\n" +
-                "\t\t\t\t\t\"index\": false\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t\"value\": {\n" +
-                "\t\t\t\t\t\"type\": \"text\",\n" +
-                "\t\t\t\t\t\"index\": false\n" +
-                "\t\t\t\t}\n" +
-                "\t\t\t}\n" +
-                "\t\t}\n" +
-                "\t},\n" +
-                "\t\"settings\": {\n" +
-                "\t\t\"index\": {\n" +
-                "\t\t\t\"number_of_replicas\": \"0\"\n" +
-                "\t\t}\n" +
-                "\t}\n" +
-                "}";
+        String json =
+                "{\n"
+                        + "\t\"mappings\": {\n"
+                        + "\t\t\"meta\": {\n"
+                        + "\t\t\t\"properties\": {\n"
+                        + "\t\t\t\t\"key\": {\n"
+                        + "\t\t\t\t\t\"type\": \"text\",\n"
+                        + "\t\t\t\t\t\"index\": false\n"
+                        + "\t\t\t\t},\n"
+                        + "\t\t\t\t\"value\": {\n"
+                        + "\t\t\t\t\t\"type\": \"text\",\n"
+                        + "\t\t\t\t\t\"index\": false\n"
+                        + "\t\t\t\t}\n"
+                        + "\t\t\t}\n"
+                        + "\t\t}\n"
+                        + "\t},\n"
+                        + "\t\"settings\": {\n"
+                        + "\t\t\"index\": {\n"
+                        + "\t\t\t\"number_of_replicas\": \"0\"\n"
+                        + "\t\t}\n"
+                        + "\t}\n"
+                        + "}";
         return createIndex(index + "_meta", json);
-
     }
 }
