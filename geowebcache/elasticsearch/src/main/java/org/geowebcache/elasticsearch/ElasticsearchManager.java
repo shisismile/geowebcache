@@ -62,64 +62,12 @@ public class ElasticsearchManager {
         this.img = info.getImg();
     }
 
-    /**
-     * 创建索引
-     *
-     * @param index 索引名
-     * @return 创建结果
-     */
-    public boolean createIndex(String index) {
+
+    private boolean createIndex(String index, String contentJsonString) {
         try {
             Request request = new Request("PUT", String.format("/%s", index));
-            String body =
-                    "{"
-                            + "\"mappings\": {"
-                            + "\"meta\":{"
-                            + "\"properties\": {"
-                            + "\"key\":{"
-                            + "\"type\": \"text\","
-                            + "\"index\": false"
-                            + "},"
-                            + "\"value\":{"
-                            + "\"type\": \"text\","
-                            + "\"index\": false"
-                            + "},"
-                            + "}"
-                            + "},"
-                            + "\"doc\": {"
-                            + "\"properties\": {"
-                            + "\"id\": {"
-                            + "\"type\": \"text\","
-                            + "\"index\": false"
-                            + "},"
-                            + "\"%s\": {"
-                            + "\"type\": \"text\","
-                            + "\"index\": false"
-                            + "},"
-                            + "\"%s\": {"
-                            + "\"type\": \"long\","
-                            + "\"index\": true"
-                            + "},"
-                            + "\"%s\": {"
-                            + "\"type\": \"long\","
-                            + "\"index\": true"
-                            + "},"
-                            + "\"%s\": {"
-                            + "\"type\": \"long\","
-                            + "\"index\": true"
-                            + "}"
-                            + "}"
-                            + "}"
-                            + "},"
-                            + "\"settings\": {"
-                            + "\"index\": {"
-                            + "\"number_of_replicas\": \"0\""
-                            + "}"
-                            + "}"
-                            + "}";
-            HttpEntity entity =
-                    new NStringEntity(
-                            String.format(body, img, x, y, z), ContentType.APPLICATION_JSON);
+            final String format = String.format(contentJsonString, img, x, y, z);
+            HttpEntity entity = new NStringEntity(format, ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
@@ -130,6 +78,50 @@ public class ElasticsearchManager {
         } catch (IOException e) {
             throw new RuntimeException("Create Index Err", e);
         }
+    }
+
+    /**
+     * 创建索引
+     *
+     * @param index 索引名
+     * @return 创建结果
+     */
+    public boolean createIndex(String index) {
+        String body = "{\n" +
+                "\t\"mappings\": {\n" +
+                "\t\t\n" +
+                "\t\t\"doc\": {\n" +
+                "\t\t\t\"properties\": {\n" +
+                "\t\t\t\t\"id\": {\n" +
+                "\t\t\t\t\t\"type\": \"text\",\n" +
+                "\t\t\t\t\t\"index\": false\n" +
+                "\t\t\t\t},\n" +
+                "\t\t\t\t\"%s\": {\n" +
+                "\t\t\t\t\t\"type\": \"text\",\n" +
+                "\t\t\t\t\t\"index\": false\n" +
+                "\t\t\t\t},\n" +
+                "\t\t\t\t\"%s\": {\n" +
+                "\t\t\t\t\t\"type\": \"long\",\n" +
+                "\t\t\t\t\t\"index\": true\n" +
+                "\t\t\t\t},\n" +
+                "\t\t\t\t\"%s\": {\n" +
+                "\t\t\t\t\t\"type\": \"long\",\n" +
+                "\t\t\t\t\t\"index\": true\n" +
+                "\t\t\t\t},\n" +
+                "\t\t\t\t\"%s\": {\n" +
+                "\t\t\t\t\t\"type\": \"long\",\n" +
+                "\t\t\t\t\t\"index\": true\n" +
+                "\t\t\t\t}\n" +
+                "\t\t\t}\n" +
+                "\t\t}\n" +
+                "\t},\n" +
+                "\t\"settings\": {\n" +
+                "\t\t\"index\": {\n" +
+                "\t\t\t\"number_of_replicas\": \"0\"\n" +
+                "\t\t}\n" +
+                "\t}\n" +
+                "}";
+        return createIndex(index, body);
     }
 
     /**
@@ -373,7 +365,7 @@ public class ElasticsearchManager {
     public boolean putMeta(String index, String key, String value) {
         try {
             if (!checkIndex(index)) {
-                createIndex(index);
+                createMetaIndex(index);
             }
             Request request = new Request("POST", String.format("/%s/meta", index));
             HttpEntity entity =
@@ -396,9 +388,9 @@ public class ElasticsearchManager {
     public String getMeta(String index, String key) {
         try {
             if (!checkIndex(index)) {
-                createIndex(index);
+                createMetaIndex(index);
             }
-            Request request = new Request("POST", String.format("/%s/doc/_search", index));
+            Request request = new Request("POST", String.format("/%s/meta/_search", index));
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
@@ -439,5 +431,31 @@ public class ElasticsearchManager {
         } catch (IOException e) {
             throw new RuntimeException("Query data Err", e);
         }
+    }
+
+    private boolean createMetaIndex(String index) {
+        String json = "{\n" +
+                "\t\"mappings\": {\n" +
+                "\t\t\"meta\": {\n" +
+                "\t\t\t\"properties\": {\n" +
+                "\t\t\t\t\"key\": {\n" +
+                "\t\t\t\t\t\"type\": \"text\",\n" +
+                "\t\t\t\t\t\"index\": false\n" +
+                "\t\t\t\t},\n" +
+                "\t\t\t\t\"value\": {\n" +
+                "\t\t\t\t\t\"type\": \"text\",\n" +
+                "\t\t\t\t\t\"index\": false\n" +
+                "\t\t\t\t}\n" +
+                "\t\t\t}\n" +
+                "\t\t}\n" +
+                "\t},\n" +
+                "\t\"settings\": {\n" +
+                "\t\t\"index\": {\n" +
+                "\t\t\t\"number_of_replicas\": \"0\"\n" +
+                "\t\t}\n" +
+                "\t}\n" +
+                "}";
+        return createIndex(index + "_meta", json);
+
     }
 }
