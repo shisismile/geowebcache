@@ -117,7 +117,9 @@ public class ElasticsearchManager {
                             + "}"
                             + "}"
                             + "}";
-            HttpEntity entity = new NStringEntity(String.format(body, img, x, y, z), ContentType.APPLICATION_JSON);
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(body, img, x, y, z), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
@@ -138,6 +140,9 @@ public class ElasticsearchManager {
      */
     public boolean deleteIndex(String index) {
         try {
+            if (!checkIndex(index)) {
+                return false;
+            }
             Request request = new Request("DELETE", String.format("/%s", index));
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
@@ -172,6 +177,9 @@ public class ElasticsearchManager {
 
     public boolean putTile(String index, long[] xyz, byte[] img0) {
         try {
+            if (checkIndex(index)) {
+                createIndex(index);
+            }
             Request request = new Request("POST", String.format("/%s/doc", index));
             HttpEntity entity =
                     new NStringEntity(
@@ -191,7 +199,8 @@ public class ElasticsearchManager {
                                     z,
                                     xyz[2],
                                     img,
-                                    Base64.getEncoder().encodeToString(img0)), ContentType.APPLICATION_JSON);
+                                    Base64.getEncoder().encodeToString(img0)),
+                            ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Header contentType = entity.getContentType();
             final Response response = restClient.performRequest(request);
@@ -207,6 +216,9 @@ public class ElasticsearchManager {
 
     public byte[] getImg(String index, long[] xyz) {
         try {
+            if (checkIndex(index)) {
+                createIndex(index);
+            }
             Request request = new Request("POST", String.format("/%s/doc/_search", index));
             HttpEntity entity =
                     new NStringEntity(
@@ -307,6 +319,9 @@ public class ElasticsearchManager {
 
     public boolean deleteTile(String index, long[] xyz) {
         try {
+            if (!checkIndex(index)) {
+                return false;
+            }
             Request request = new Request("POST", String.format("/%s/_delete_by_query", index));
             HttpEntity entity =
                     new NStringEntity(
@@ -357,11 +372,15 @@ public class ElasticsearchManager {
 
     public boolean putMeta(String index, String key, String value) {
         try {
+            if (!checkIndex(index)) {
+                createIndex(index);
+            }
             Request request = new Request("POST", String.format("/%s/meta", index));
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
-                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value), ContentType.APPLICATION_JSON);
+                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value),
+                            ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
@@ -376,6 +395,9 @@ public class ElasticsearchManager {
 
     public String getMeta(String index, String key) {
         try {
+            if (!checkIndex(index)) {
+                createIndex(index);
+            }
             Request request = new Request("POST", String.format("/%s/doc/_search", index));
             HttpEntity entity =
                     new NStringEntity(
