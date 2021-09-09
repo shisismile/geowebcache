@@ -180,26 +180,26 @@ public class ElasticsearchManager {
                 createIndex(index);
             }
             Request request = new Request("POST", String.format("/%s/doc", index));
-            HttpEntity entity =
-                    new NStringEntity(
-                            String.format(
-                                    "{"
-                                            + "\"id\": \"%s\","
-                                            + "\"%s\": %d,"
-                                            + "\"%s\": %d,"
-                                            + "\"%s\": %d,"
-                                            + "\"%s\": %s"
-                                            + "}",
-                                    xyz[0] + "_" + xyz[1] + "_" + xyz[2],
-                                    x,
-                                    xyz[0],
-                                    y,
-                                    xyz[1],
-                                    z,
-                                    xyz[2],
-                                    img,
-                                    Base64.getEncoder().encodeToString(img0)),
-                            ContentType.APPLICATION_JSON);
+            final String body =
+                    String.format(
+                            "{"
+                                    + "\"id\": \"%s\","
+                                    + "\"%s\": %d,"
+                                    + "\"%s\": %d,"
+                                    + "\"%s\": %d,"
+                                    + "\"%s\": \"%s\""
+                                    + "}",
+                            xyz[0] + "_" + xyz[1] + "_" + xyz[2],
+                            x,
+                            xyz[0],
+                            y,
+                            xyz[1],
+                            z,
+                            xyz[2],
+                            img,
+                            Base64.getEncoder().encodeToString(img0));
+            LOGGER.info("body:" + body);
+            HttpEntity entity = new NStringEntity(body, ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Header contentType = entity.getContentType();
             final Response response = restClient.performRequest(request);
@@ -381,7 +381,7 @@ public class ElasticsearchManager {
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
-                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value),
+                                    "{" + "\"key\": \"%s\"," + "\"value\": \"%s\"" + "}", key, value),
                             ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
@@ -401,7 +401,8 @@ public class ElasticsearchManager {
             if (!checkIndex(index)) {
                 createMetaIndex(index);
             }
-            Request request = new Request("POST", String.format("/%s/meta/_search", index + "_meta"));
+            Request request =
+                    new Request("POST", String.format("/%s/meta/_search", index + "_meta"));
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
