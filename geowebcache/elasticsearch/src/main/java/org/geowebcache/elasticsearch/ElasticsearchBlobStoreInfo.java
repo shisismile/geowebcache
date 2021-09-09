@@ -1,12 +1,13 @@
 package org.geowebcache.elasticsearch;
 
-import java.util.Arrays;
 import org.apache.http.HttpHost;
 import org.geowebcache.config.BlobStoreInfo;
 import org.geowebcache.layer.TileLayerDispatcher;
 import org.geowebcache.locks.LockProvider;
 import org.geowebcache.storage.BlobStore;
 import org.geowebcache.storage.StorageException;
+
+import java.util.Arrays;
 
 /**
  * @author shimingen
@@ -20,13 +21,21 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
     private int connectTimeout;
     private int socketTimeout;
 
-    /** x filed name */
+    /**
+     * x filed name
+     */
     private String xTile;
-    /** y filed name */
+    /**
+     * y filed name
+     */
     private String yTile;
-    /** z filed name */
+    /**
+     * z filed name
+     */
     private String zoom;
-    /** img filed name ; */
+    /**
+     * img filed name ;
+     */
     private String img;
 
     public String getxTile() {
@@ -61,9 +70,13 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
         this.img = img;
     }
 
-    public HttpHost[] getHosts() {
+    public HttpHost[] getHttpHosts() {
         final String[] split = hosts.split(";");
         return Arrays.stream(split).map(HttpHost::create).toArray(HttpHost[]::new);
+    }
+
+    public String getHosts() {
+        return hosts;
     }
 
     public void setHosts(String hosts) {

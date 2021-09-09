@@ -30,7 +30,7 @@ public class ElasticsearchManager {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ElasticsearchManager(ElasticsearchBlobStoreInfo info) {
-        final Node[] nodes = Arrays.stream(info.getHosts()).map(Node::new).toArray(Node[]::new);
+        final Node[] nodes = Arrays.stream(info.getHttpHosts()).map(Node::new).toArray(Node[]::new);
         final RestClientBuilder restClientBuilder =
                 RestClient.builder(nodes)
                         .setRequestConfigCallback(
