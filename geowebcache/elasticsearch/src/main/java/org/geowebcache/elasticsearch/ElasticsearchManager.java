@@ -171,13 +171,13 @@ public class ElasticsearchManager {
                     });
             return !map.containsKey("error");
         } catch (IOException e) {
-            throw new RuntimeException("Check Index Err", e);
+            return false;
         }
     }
 
     public boolean putTile(String index, long[] xyz, byte[] img0) {
         try {
-            if (checkIndex(index)) {
+            if (!checkIndex(index)) {
                 createIndex(index);
             }
             Request request = new Request("POST", String.format("/%s/doc", index));
@@ -216,7 +216,7 @@ public class ElasticsearchManager {
 
     public byte[] getImg(String index, long[] xyz) {
         try {
-            if (checkIndex(index)) {
+            if (!checkIndex(index)) {
                 createIndex(index);
             }
             Request request = new Request("POST", String.format("/%s/doc/_search", index));
