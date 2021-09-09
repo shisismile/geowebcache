@@ -381,7 +381,8 @@ public class ElasticsearchManager {
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
-                                    "{" + "\"key\": \"%s\"," + "\"value\": \"%s\"" + "}", key, value),
+                                    "{" + "\"key\": \"%s\"," + "\"value\": \"%s\"" + "}",
+                                    key, value),
                             ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
