@@ -30,6 +30,7 @@
     <module>swiftblob</module>
     <module>mbtiles</module>
     <module>mongodb</module>
+    <module>elasticsearch</module>
   </modules>
 
   <distributionManagement>
@@ -90,6 +91,7 @@
     <jclouds.version>2.2.0</jclouds.version>
     <mockito.version>3.8.0</mockito.version>
     <mongo.version>4.0.2</mongo.version>
+    <elasticsearch.version>7.10.2</elasticsearch.version>
   </properties>
 
   <dependencyManagement>
@@ -186,6 +188,11 @@
         <groupId>org.mongodb</groupId>
         <artifactId>mongodb-driver-sync</artifactId>
         <version>${mongo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-client</artifactId>
+        <version>${elasticsearch.version}</version>
       </dependency>
       <dependency>
         <groupId>log4j</groupId>
@@ -479,6 +486,16 @@
       <id>osgeo-snapshot</id>
       <name>OSGeo Repository</name>
       <url>https://repo.osgeo.org/repository/snapshot/</url>
+    </repository>
+    <repository>
+      <id>spring</id>
+      <url>https://maven.aliyun.com/repository/spring</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
 
