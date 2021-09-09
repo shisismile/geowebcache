@@ -1,6 +1,5 @@
 package org.geowebcache.elasticsearch;
 
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
@@ -32,20 +31,28 @@ public class ElasticsearchManager {
 
     public ElasticsearchManager(ElasticsearchBlobStoreInfo info) {
         final Node[] nodes = Arrays.stream(info.getHosts()).map(Node::new).toArray(Node[]::new);
-        final RestClientBuilder restClientBuilder = RestClient.builder(nodes)
-                .setRequestConfigCallback(requestBuilder -> {
-                    requestBuilder.setConnectTimeout(info.getConnectTimeout());
-                    requestBuilder.setSocketTimeout(info.getSocketTimeout());
-                    requestBuilder.setConnectionRequestTimeout(info.getConnectionRequestTimeout());
-                    return requestBuilder;
-                });
+        final RestClientBuilder restClientBuilder =
+                RestClient.builder(nodes)
+                        .setRequestConfigCallback(
+                                requestBuilder -> {
+                                    requestBuilder.setConnectTimeout(info.getConnectTimeout());
+                                    requestBuilder.setSocketTimeout(info.getSocketTimeout());
+                                    requestBuilder.setConnectionRequestTimeout(
+                                            info.getConnectionRequestTimeout());
+                                    return requestBuilder;
+                                });
         if (StringUtils.hasText(info.getUsername()) && StringUtils.hasText(info.getPassword())) {
-            final BasicCredentialsProvider basicCredentialsProvider = new BasicCredentialsProvider();
-            basicCredentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(info.getUsername(), info.getPassword()));
-            restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder -> {
-                httpAsyncClientBuilder.disableAuthCaching();
-                return httpAsyncClientBuilder.setDefaultCredentialsProvider(basicCredentialsProvider);
-            });
+            final BasicCredentialsProvider basicCredentialsProvider =
+                    new BasicCredentialsProvider();
+            basicCredentialsProvider.setCredentials(
+                    AuthScope.ANY,
+                    new UsernamePasswordCredentials(info.getUsername(), info.getPassword()));
+            restClientBuilder.setHttpClientConfigCallback(
+                    httpAsyncClientBuilder -> {
+                        httpAsyncClientBuilder.disableAuthCaching();
+                        return httpAsyncClientBuilder.setDefaultCredentialsProvider(
+                                basicCredentialsProvider);
+                    });
         }
         restClient = restClientBuilder.build();
         this.x = info.getxTile();
@@ -59,50 +66,67 @@ public class ElasticsearchManager {
      *
      * @param index 索引名
      * @return 创建结果
-     * @throws IOException 异常
      */
-    public boolean createIndex(String index) throws IOException {
-        Request request = new Request("PUT", String.format("/%s", index));
-        String body = "{" +
-                "\"mappings\": {" +
-                "\"doc\": {" +
-                "\"properties\": {" +
-                "\"id\": {" +
-                "\"type\": \"text\"," +
-                "\"index\": false" +
-                "}," +
-                "\"%s\": {" +
-                "\"type\": \"text\"," +
-                "\"index\": false" +
-                "}," +
-                "\"%s\": {" +
-                "\"type\": \"long\"," +
-                "\"index\": true" +
-                "}," +
-                "\"%s\": {" +
-                "\"type\": \"long\"," +
-                "\"index\": true" +
-                "}," +
-                "\"%s\": {" +
-                "\"type\": \"long\"," +
-                "\"index\": true" +
-                "}" +
-                "}" +
-                "}" +
-                "}," +
-                "\"settings\": {" +
-                "\"index\": {" +
-                "\"number_of_replicas\": \"0\"" +
-                "}" +
-                "}" +
-                "}";
-        HttpEntity entity = new NStringEntity(String.format(body, img, x, y, z));
-        request.setEntity(entity);
-        final Response response = restClient.performRequest(request);
-        final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
-        final Map<String, Object> map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
-        });
-        return !map.containsKey("error") && (boolean) map.get("acknowledged");
+    public boolean createIndex(String index) {
+        try {
+            Request request = new Request("PUT", String.format("/%s", index));
+            String body =
+                    "{"
+                            + "\"mappings\": {"
+                            + "\"meta\":{"
+                            + "\"properties\": {"
+                            + "\"key\":{"
+                            + "\"type\": \"text\","
+                            + "\"index\": false"
+                            + "},"
+                            + "\"value\":{"
+                            + "\"type\": \"text\","
+                            + "\"index\": false"
+                            + "},"
+                            + "}"
+                            + "},"
+                            + "\"doc\": {"
+                            + "\"properties\": {"
+                            + "\"id\": {"
+                            + "\"type\": \"text\","
+                            + "\"index\": false"
+                            + "},"
+                            + "\"%s\": {"
+                            + "\"type\": \"text\","
+                            + "\"index\": false"
+                            + "},"
+                            + "\"%s\": {"
+                            + "\"type\": \"long\","
+                            + "\"index\": true"
+                            + "},"
+                            + "\"%s\": {"
+                            + "\"type\": \"long\","
+                            + "\"index\": true"
+                            + "},"
+                            + "\"%s\": {"
+                            + "\"type\": \"long\","
+                            + "\"index\": true"
+                            + "}"
+                            + "}"
+                            + "}"
+                            + "},"
+                            + "\"settings\": {"
+                            + "\"index\": {"
+                            + "\"number_of_replicas\": \"0\""
+                            + "}"
+                            + "}"
+                            + "}";
+            HttpEntity entity = new NStringEntity(String.format(body, img, x, y, z));
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
+            return !map.containsKey("error") && (boolean) map.get("acknowledged");
+        } catch (IOException e) {
+            throw new RuntimeException("Create Index Err", e);
+        }
     }
 
     /**
@@ -116,11 +140,12 @@ public class ElasticsearchManager {
             Request request = new Request("DELETE", String.format("/%s", index));
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
-            final Map<String, Object> map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
-            });
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
             return !map.containsKey("error") && (boolean) map.get("acknowledged");
         } catch (IOException e) {
-            throw new RuntimeException("");
+            throw new RuntimeException("Delete Index Err", e);
         }
     }
 
@@ -129,78 +154,109 @@ public class ElasticsearchManager {
      *
      * @param index 索引名
      * @return 创建结果
-     * @throws IOException 异常
      */
-    public boolean checkIndex(String index) throws IOException {
-        Request request = new Request("GET", String.format("/%s", index));
-        final Response response = restClient.performRequest(request);
-        final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
-        final Map<String, Object> map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
-        });
-        return !map.containsKey("error");
-    }
-
-    public boolean putTile(String index, long[] xyz, byte[] img0) throws IOException {
-        Request request = new Request("POST", String.format("/%s/doc", index));
-        HttpEntity entity = new NStringEntity(String.format("{\n" +
-                "\t\"id\": \"%s\",\n" +
-                "\t\"%s\": %d,\n" +
-                "\t\"%s\": %d,\n" +
-                "\t\"%s\": %d,\n" +
-                "\t\"%s\": %s\n" +
-                "}", xyz[0] + "_" + xyz[1] + "_" + xyz[2], x, xyz[0], y, xyz[1], z, xyz[2], img, Base64.getEncoder().encodeToString(img0)));
-        request.setEntity(entity);
-        final Response response = restClient.performRequest(request);
-        final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
-        final Map<String, Object> map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
-        });
-        return !map.containsKey("error") && map.containsKey("result");
-    }
-
-    public byte[] getImg(String index, long[] xyz) throws IOException {
-        Request request = new Request("POST", String.format("/%s/_search", index));
-        HttpEntity entity = new NStringEntity(String.format("{" +
-                "\"from\": 0," +
-                "\"size\": 1," +
-                "\"timeout\": \"60s\"," +
-                "\"query\": {" +
-                "\"bool\": {" +
-                "\"must\": [{" +
-                "\"match\": {" +
-                "\"%s\": {" +
-                "\"query\": %d," +
-                "\"operator\": \"AND\"" +
-                "}" +
-                "}" +
-                "}, {" +
-                "\"match\": {" +
-                "\"%s\": {" +
-                "\"query\": %d," +
-                "\"operator\": \"AND\"" +
-                "}" +
-                "}" +
-                "}, {" +
-                "\"match\": {" +
-                "\"%s\": {" +
-                "\"query\": %d," +
-                "\"operator\": \"AND\"" +
-                "}" +
-                "}" +
-                "}]," +
-                "\"adjust_pure_negative\": true," +
-                "\"boost\": 1.0" +
-                "}" +
-                "}" +
-                "}", x, xyz[0], y, xyz[1], z, xyz[2]), ContentType.APPLICATION_JSON);
-        request.setEntity(entity);
-        final Response response = restClient.performRequest(request);
-        final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
-        final HitsResult hitsResult = objectMapper.readValue(bytes, HitsResult.class);
-        final Integer total = hitsResult.getHits().getTotal();
-        if (total == 0) {
-            throw new RuntimeException("Not Found");
+    public boolean checkIndex(String index) {
+        try {
+            Request request = new Request("GET", String.format("/%s", index));
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
+            return !map.containsKey("error");
+        } catch (IOException e) {
+            throw new RuntimeException("Check Index Err", e);
         }
-        return Base64.getDecoder().decode(hitsResult.getHits().getHits()[0].get_source().getImg());
+    }
+
+    public boolean putTile(String index, long[] xyz, byte[] img0) {
+        try {
+            Request request = new Request("POST", String.format("/%s/doc", index));
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(
+                                    "{"
+                                            + "\"id\": \"%s\","
+                                            + "\"%s\": %d,"
+                                            + "\"%s\": %d,"
+                                            + "\"%s\": %d,"
+                                            + "\"%s\": %s"
+                                            + "}",
+                                    xyz[0] + "_" + xyz[1] + "_" + xyz[2],
+                                    x,
+                                    xyz[0],
+                                    y,
+                                    xyz[1],
+                                    z,
+                                    xyz[2],
+                                    img,
+                                    Base64.getEncoder().encodeToString(img0)));
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
+            return !map.containsKey("error") && map.containsKey("result");
+        } catch (IOException e) {
+            throw new RuntimeException("Add data Err", e);
+        }
+    }
+
+    public byte[] getImg(String index, long[] xyz) {
+        try {
+            Request request = new Request("POST", String.format("/%s/doc/_search", index));
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(
+                                    "{"
+                                            + "\"from\": 0,"
+                                            + "\"size\": 1,"
+                                            + "\"timeout\": \"60s\","
+                                            + "\"query\": {"
+                                            + "\"bool\": {"
+                                            + "\"must\": [{"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}, {"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}, {"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}],"
+                                            + "\"adjust_pure_negative\": true,"
+                                            + "\"boost\": 1.0"
+                                            + "}"
+                                            + "}"
+                                            + "}",
+                                    x, xyz[0], y, xyz[1], z, xyz[2]),
+                            ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final HitsResult hitsResult = objectMapper.readValue(bytes, HitsResult.class);
+            final Integer total = hitsResult.getHits().getTotal();
+            if (total == 0) {
+                throw new RuntimeException("Not Found");
+            }
+            return Base64.getDecoder()
+                    .decode(hitsResult.getHits().getHits()[0].get_source().getImg());
+        } catch (IOException e) {
+            throw new RuntimeException("Query data Err", e);
+        }
     }
 
     /**
@@ -243,5 +299,121 @@ public class ElasticsearchManager {
         return ret;
     }
 
+    public boolean renameIndex(String newLayerName, String oldLayerName) {
+        throw new RuntimeException("Not Implements Yet");
+    }
 
+    public boolean deleteTile(String index, long[] xyz) {
+        try {
+            Request request = new Request("POST", String.format("/%s/_delete_by_query", index));
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(
+                                    "{"
+                                            + "\"query\": {"
+                                            + "\"bool\": {"
+                                            + "\"must\": [{"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}, {"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}, {"
+                                            + "\"match\": {"
+                                            + "\"%s\": {"
+                                            + "\"query\": %d,"
+                                            + "\"operator\": \"AND\""
+                                            + "}"
+                                            + "}"
+                                            + "}],"
+                                            + "\"adjust_pure_negative\": true,"
+                                            + "\"boost\": 1.0"
+                                            + "}"
+                                            + "}"
+                                            + "}",
+                                    x, xyz[0], y, xyz[1], z, xyz[2]),
+                            ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
+            return !map.containsKey("error") && map.containsKey("deleted");
+        } catch (IOException e) {
+            throw new RuntimeException("Delete  data Err", e);
+        }
+    }
+
+    public boolean putMeta(String index, String key, String value) {
+        try {
+            Request request = new Request("POST", String.format("/%s/meta", index));
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(
+                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value));
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final Map<String, Object> map =
+                    objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+                    });
+            return !map.containsKey("error") && map.containsKey("result");
+        } catch (IOException e) {
+            throw new RuntimeException("Add data Err", e);
+        }
+    }
+
+    public String getMeta(String index, String key) {
+        try {
+            Request request = new Request("POST", String.format("/%s/doc/_search", index));
+            HttpEntity entity =
+                    new NStringEntity(
+                            String.format(
+                                    "{"
+                                            + "\"from\": 0,"
+                                            + "\"size\": 1,"
+                                            + "\"timeout\": \"60s\","
+                                            + "\"query\": {"
+                                            + "\"bool\": {"
+                                            + "\"must\": ["
+                                            + "{"
+                                            + "\"match\": {"
+                                            + "\"key\": {"
+                                            + "\"query\": \"%s\""
+                                            + "}"
+                                            + "}"
+                                            + "}"
+                                            + "],"
+                                            + "\"adjust_pure_negative\": true,"
+                                            + "\"boost\": 1"
+                                            + "}"
+                                            + "}"
+                                            + "}",
+                                    key),
+                            ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+            final Response response = restClient.performRequest(request);
+            final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
+            final CommentHitsResult commentHitsResult =
+                    objectMapper.readValue(bytes, CommentHitsResult.class);
+            final Integer total = commentHitsResult.getHits().getTotal();
+            if (total == 0) {
+                throw new RuntimeException("Not Found");
+            }
+            final Map<String, Object> source =
+                    commentHitsResult.getHits().getHits()[0].get_source();
+            return source.get("value").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Query data Err", e);
+        }
+    }
 }

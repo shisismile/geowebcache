@@ -25,17 +25,11 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
      * x filed name
      */
     private String xTile;
-    /**
-     * y filed name
-     */
+    /** y filed name */
     private String yTile;
-    /**
-     * z filed name
-     */
+    /** z filed name */
     private String zoom;
-    /**
-     * img filed name ;
-     */
+    /** img filed name ; */
     private String img;
 
     public String getxTile() {
@@ -125,7 +119,8 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
     }
 
     @Override
-    public BlobStore createInstance(TileLayerDispatcher layers, LockProvider lockProvider) throws StorageException {
+    public BlobStore createInstance(TileLayerDispatcher layers, LockProvider lockProvider)
+            throws StorageException {
         return new ElasticsearchBlobStore(this);
     }
 
