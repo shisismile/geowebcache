@@ -1,13 +1,12 @@
 package org.geowebcache.elasticsearch;
 
+import java.util.Arrays;
 import org.apache.http.HttpHost;
 import org.geowebcache.config.BlobStoreInfo;
 import org.geowebcache.layer.TileLayerDispatcher;
 import org.geowebcache.locks.LockProvider;
 import org.geowebcache.storage.BlobStore;
 import org.geowebcache.storage.StorageException;
-
-import java.util.Arrays;
 
 /**
  * @author shimingen
@@ -21,9 +20,7 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
     private int connectTimeout;
     private int socketTimeout;
 
-    /**
-     * x filed name
-     */
+    /** x filed name */
     private String xTile;
     /** y filed name */
     private String yTile;
