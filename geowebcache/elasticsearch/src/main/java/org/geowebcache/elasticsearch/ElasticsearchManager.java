@@ -2,6 +2,7 @@ package org.geowebcache.elasticsearch;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -116,7 +117,7 @@ public class ElasticsearchManager {
                             + "}"
                             + "}"
                             + "}";
-            HttpEntity entity = new NStringEntity(String.format(body, img, x, y, z));
+            HttpEntity entity = new NStringEntity(String.format(body, img, x, y, z), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
@@ -190,8 +191,9 @@ public class ElasticsearchManager {
                                     z,
                                     xyz[2],
                                     img,
-                                    Base64.getEncoder().encodeToString(img0)));
+                                    Base64.getEncoder().encodeToString(img0)), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
+            final Header contentType = entity.getContentType();
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());
             final Map<String, Object> map =
@@ -359,7 +361,7 @@ public class ElasticsearchManager {
             HttpEntity entity =
                     new NStringEntity(
                             String.format(
-                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value));
+                                    "{" + "\"key\": \"%s\"," + "\"value\": %s" + "}", key, value), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
             final Response response = restClient.performRequest(request);
             final byte[] bytes = EntityUtils.toByteArray(response.getEntity());

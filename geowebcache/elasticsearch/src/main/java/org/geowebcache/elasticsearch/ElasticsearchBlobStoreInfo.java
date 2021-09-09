@@ -25,17 +25,11 @@ public class ElasticsearchBlobStoreInfo extends BlobStoreInfo {
      * x filed name
      */
     private String xTile;
-    /**
-     * y filed name
-     */
+    /** y filed name */
     private String yTile;
-    /**
-     * z filed name
-     */
+    /** z filed name */
     private String zoom;
-    /**
-     * img filed name ;
-     */
+    /** img filed name ; */
     private String img;
 
     public String getxTile() {
